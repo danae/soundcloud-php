@@ -1,0 +1,19 @@
+{
+  "name": "danae/soundcloud-php",
+  "description": "Easy to use SoundCloud API wrapper for PHP",
+  "type": "library",
+  "keywords": ["soundcloud", "api", "wrapper", "php"],
+  "authors": [
+    {
+      "name": "Danae Dekker",
+      "email": "info@danaedekker.com"
+    }
+  ],
+  "require": {
+    "php": "^7.2",
+    "guzzlehttp/guzzle": "~6.0"
+  },
+  "autoload": {
+    "psr-4": {"Danae\\Soundcloud\\": "src/"}
+  }
+}
