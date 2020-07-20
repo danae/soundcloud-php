@@ -3,7 +3,7 @@
   "description": "Easy to use SoundCloud API wrapper for PHP",
   "type": "library",
   "keywords": ["soundcloud", "api", "wrapper", "php"],
-  "license": "GPL-3.0+",
+  "license": "GPL-3.0-or-later",
   "authors": [
     {
       "name": "Danae Dekker",
