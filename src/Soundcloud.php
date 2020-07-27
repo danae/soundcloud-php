@@ -35,7 +35,7 @@ class Soundcloud
     $this->client_secret = $options['client_secret'] ?? null;
     $this->redirect_uri = $options['redirect_uri'] ?? null;
     $this->access_token = $options['access_token'] ?? null;
-    $this->scope = $options['scope'] ?? 'non-expiring';
+    $this->scope = $options['scope'] ?? '';
 
     // Initilalize the GuzzleHttp client
     $this->client = new Client(['base_uri' => self::URI, 'verify' => false, 'http_errors' => false]);
@@ -94,7 +94,7 @@ class Soundcloud
   public function authorizeWithCredentials(string $username, string $password): void
   {
     $response_json = $this->post('/oauth2/token', [
-      'grant_type' => 'password',
+      'grant_type' => 'client_credentials',
       'client_id' => $this->client_id,
       'client_secret' => $this->client_secret,
       'scope' => $this->scope,
@@ -120,10 +120,6 @@ class Soundcloud
         $response = $this->client->request($method, $uri, ['query' => $query, 'json' => $json]);
       else
         $response = $this->client->request($method, $uri, ['query' => $query]);
-
-      // Check if authorization is needed
-      if ($response->getStatusCode() == 401)
-        throw new RuntimeException("You must authorize your application first");
 
       // Check if the request succeeded
       if (!preg_match('/[2-3][0-9]{2}/', $response->getStatusCode()))
