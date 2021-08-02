@@ -38,14 +38,6 @@ class Soundcloud
 
     // Initilalize the GuzzleHttp client
     $this->client = new Client(['base_uri' => self::URI, 'verify' => false, 'http_errors' => false]);
-
-    // Authorize based on the provided options
-    if (self::optionsPresent($options, ['client_id', 'client_secret', 'code']))
-      $this->authorizeWithCode($options['access_token']);
-    else if (self::optionsPresent($options, ['client_id', 'client_secret', 'refresh_token']))
-      $this->authorizeWithRefreshToken($options['refresh_token']);
-    else if (self::optionsPresent($options, ['client_id', 'client_secret']))
-      $this->authorizeWithCredentials($options['username'], $options['password']);
   }
 
   // Return the authorization URL
