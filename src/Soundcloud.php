@@ -35,17 +35,16 @@ class Soundcloud
     $this->client_secret = $options['client_secret'] ?? null;
     $this->redirect_uri = $options['redirect_uri'] ?? null;
     $this->access_token = $options['access_token'] ?? null;
-    $this->scope = $options['scope'] ?? '';
 
     // Initilalize the GuzzleHttp client
     $this->client = new Client(['base_uri' => self::URI, 'verify' => false, 'http_errors' => false]);
 
     // Authorize based on the provided options
-    if (self::optionsPresent($options, ['client_id', 'redirect_uri']))
-      $this->connect();
-    if (self::optionsPresent($options, ['client_id', 'client_secret', 'refresh_token']))
+    if (self::optionsPresent($options, ['client_id', 'client_secret', 'code']))
+      $this->authorizeWithCode($options['access_token']);
+    else if (self::optionsPresent($options, ['client_id', 'client_secret', 'refresh_token']))
       $this->authorizeWithRefreshToken($options['refresh_token']);
-    else if (self::optionsPresent($options, ['client_id', 'client_secret', 'username', 'password']))
+    else if (self::optionsPresent($options, ['client_id', 'client_secret']))
       $this->authorizeWithCredentials($options['username'], $options['password']);
   }
 
@@ -55,15 +54,14 @@ class Soundcloud
     $options = [
       'response_type' => 'code',
       'client_id' => $this->client_id,
-      'redirect_uri' => $this->redirect_uri,
-      'scope' => $this->scope
+      'redirect_uri' => $this->redirect_uri
     ];
 
     $this->authorize_url = AUTHORIZE_URI . http_build_query($options);
     return $this->authorize_url;
   }
 
-  // Obtain an access token given an authorization code
+  // Obtain an access token with an authorization code
   public function authorizeWithCode($code): void
   {
     $response_json = $this->post('/oauth2/token', [
@@ -77,7 +75,20 @@ class Soundcloud
     $this->access_token = $response_json->access_token;
   }
 
-  // Obtain an access token given a refresh token
+  // Obtain an access token with client credentials
+  public function authorizeWithClientCredentials(): void
+  {
+    $response_json = $this->post('/oauth2/token', [
+      'grant_type' => 'client_credentials',
+      'client_id' => $this->client_id,
+      'client_secret' => $this->client_secret,
+      'scope' => $this->scope
+    ]);
+
+    $this->access_token = $response_json->access_token;
+  }
+
+  // Obtain an access token with a refresh token
   public function authorizeWithRefreshToken($refresh_token): void
   {
     $response_json = $this->post('/oauth2/token', [
@@ -90,26 +101,17 @@ class Soundcloud
     $this->access_token = $response_json->access_token;
   }
 
-  // Obtain an access token given a username and password
-  public function authorizeWithCredentials(string $username, string $password): void
-  {
-    $response_json = $this->post('/oauth2/token', [
-      'grant_type' => 'client_credentials',
-      'client_id' => $this->client_id,
-      'client_secret' => $this->client_secret,
-      'scope' => $this->scope,
-      'username' => $username,
-      'password' => $password
-    ]);
-
-    $this->access_token = $response_json->access_token;
-  }
-
   // Send a request
   private function request(string $method, string $uri, array $query = [], array $json = [])
   {
     try
     {
+      // Prepare the headers
+      $headers = [];
+      if ($this->access_token)
+        $headers['Authorization'] = "OAuth {$this->access_token}";
+
+
       // Prepare the query
       $query['client_id'] = $this->client_id;
       if ($this->access_token)
@@ -117,16 +119,16 @@ class Soundcloud
 
       // Send the request
       if ($method == 'POST' || $method == 'PUT')
-        $response = $this->client->request($method, $uri, ['query' => $query, 'json' => $json]);
+        $response = $this->client->request($method, $uri, ['query' => $query, 'headers' => $headers, 'json' => $json]);
       else
-        $response = $this->client->request($method, $uri, ['query' => $query]);
+        $response = $this->client->request($method, $uri, ['query' => $query, 'headers' => $headers]);
 
       // Check if the request succeeded
       if (!preg_match('/[2-3][0-9]{2}/', $response->getStatusCode()))
         throw new RuntimeException("The request \"{$method} {$uri}" . (!empty($query) ? "?" . http_build_query($query) : "") . "\" returned with HTTP status code {$response->getStatusCode()}: {$response->getBody()}");
 
       // Otherwise handle the response
-      if (strpos($response->getHeaderLine('Content-Type'),'application/json') === 0)
+      if (strpos($response->getHeaderLine('Content-Type'), 'application/json') === 0)
         return json_decode($response->getBody());
       else
         return $response->getBody();
